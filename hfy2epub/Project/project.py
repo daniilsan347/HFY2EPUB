@@ -2,6 +2,7 @@ import praw
 import os
 from hfy2epub.Project.project_config import ProjectConfig
 from hfy2epub.Project.wiki_processor import WikiProcessor
+from hfy2epub.Downloader.downloader import Downloader
 
 class Project:
     def __init__(self, config: ProjectConfig):
@@ -43,4 +44,7 @@ class Project:
 
         print(f"Wiki data for subreddit '{self.config.subreddit_name}' has been fetched and written to {self.wiki_dir}.")
         
+        downloader = Downloader(self.reddit, self.raw_dir, self.wiki_dir)
+        downloader.run()
+
         pass  # Placeholder for the main logic of the project

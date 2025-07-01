@@ -2,3 +2,5 @@ venv/
 output/
 praw.ini
 projects/
+.vscode/
+**/*.pyc
