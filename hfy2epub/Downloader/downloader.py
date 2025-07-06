@@ -64,11 +64,6 @@ class Downloader:
         with open(wiki_file, 'r', encoding='utf-8') as file:
             wiki_data = yaml.safe_load(file)
 
-        # last_chapters = metadata['chapters'].copy()
-        # last_chapters.sort(key=lambda x: x['revision_date'], reverse=True)
-        # for chapter in last_chapters[-2:]: # Redownload the last two chapters
-        #     missing_chapters.put(chapter['url'])
-
         df_chapters = pd.DataFrame(metadata['chapters'])
         df_chapters.sort_values(by='revision_date', ascending=False, inplace=True)
         for chapter in df_chapters['url'][:2]:
@@ -82,6 +77,7 @@ class Downloader:
             if chapter_metadata:
                 metadata['chapters'].append(chapter_metadata)
                 print(f"Downloaded chapter: {chapter_metadata['title']} ({chapter_metadata['url']})")
+            missing_chapters.task_done()
         
         cleared_metadata = self.delete_old_chapters(metadata['chapters']).to_dict(orient='records')
         metadata['chapters'] = cleared_metadata
@@ -197,7 +193,8 @@ class Downloader:
         """
         Delete old versions of chapters based on their URLs and revision dates.
         This method will keep the latest version of each chapter based on the URL and revision date.
-            :param chapters: List of chapter metadata dictionaries.
+            
+        :param chapters: List of chapter metadata dictionaries.
         """
         chapters_df = pd.DataFrame(chapters)
         df_sorted = chapters_df.sort_values(by=['url','revision_date'], ascending=False)
