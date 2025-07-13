@@ -4,7 +4,7 @@ from hfy2epub.Project.project_config import ProjectConfig
 from hfy2epub.Project.wiki_processor import WikiProcessor
 from hfy2epub.Downloader.downloader import Downloader
 from hfy2epub.Processor.AJ4AD_processor import AJ4ADProcessor
-
+from hfy2epub.Converter.converter import Converter
 class Project:
     def __init__(self, config: ProjectConfig):
         self.config = config
@@ -43,7 +43,7 @@ class Project:
         wiki_processor.fetch_wiki_data()
         wiki_processor.write_wiki_data(self.wiki_dir)
 
-        print(f"Wiki data for subreddit '{self.config.subreddit_name}' has been fetched and written to {self.wiki_dir}.")
+        print(f"[Project] Wiki data for subreddit '{self.config.subreddit_name}' has been fetched and written to {self.wiki_dir}.")
         
         downloader = Downloader(self.reddit, self.raw_dir, self.wiki_dir)
         downloader.run()
@@ -51,4 +51,7 @@ class Project:
         # TODO: Implement more modular logic
         processor = AJ4ADProcessor(self.raw_dir, self.processed_dir)
         processor.run()
+
+        converter = Converter(self.wiki_dir, self.processed_dir)
+        converter.run()
         pass  # Placeholder for the main logic of the project

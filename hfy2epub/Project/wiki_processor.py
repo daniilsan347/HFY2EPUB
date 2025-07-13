@@ -4,6 +4,7 @@ import mistune
 import re
 import yaml
 import os
+from datetime import datetime
 
 class WikiProcessor:
     def __init__(self, subreddit: Subreddit, wiki_uri: str, wiki_section: str):
@@ -36,11 +37,11 @@ class WikiProcessor:
             'wiki_uri': self.wiki_uri,
             'wiki_section': self.wiki_section,
             'revision_date': revision_date,
+            'author': wiki_page.revision_by.name if wiki_page.revision_by else 'Unknown',
             'chapters': [{'url': url, 'title': title} for url, title in chapters]
         }
 
         return self.wiki_data
-        
 
     def extract_chapters(self, wiki_page: WikiPage) -> list[tuple[str, str]]:
         """

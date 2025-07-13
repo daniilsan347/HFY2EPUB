@@ -29,30 +29,31 @@ class BaseProcessor:
             self.raw_metadata = yaml.safe_load(file)
 
         if not os.path.exists(metadata_file):
-            print(f"Metadata file not found: {metadata_file}")
+            print(f"[Processor] Metadata file not found: {metadata_file}")
             return False
         with open(metadata_file, 'r', encoding='utf-8') as file:
             self.metadata = yaml.safe_load(file)       
 
         if not self.metadata or not self.raw_metadata:
-            print("Metadata is empty or not properly loaded.")
+            print("[Processor] Metadata is empty or not properly loaded.")
             return False
 
         if self.metadata.get('subreddit') != self.raw_metadata.get('subreddit') or \
            self.metadata.get('wiki_uri') != self.raw_metadata.get('wiki_uri') or \
            self.metadata.get('wiki_section') != self.raw_metadata.get('wiki_section'):
-            print("Metadata mismatch between processed and raw metadata.")
+            print("[Processor] Metadata mismatch between processed and raw metadata.")
             return False
         
         markdown_files = glob(os.path.join(self.processed_dir, '*.md'))
         if not markdown_files:
-            print("No markdown files found in the processed directory.")
+            print("[Processor] No markdown files found in the processed directory.")
             return False
         
         markdown_set: set[str] = set(os.path.basename(f) for f in markdown_files)
         metadata_set: set[str] = set(chapter['filename'] for chapter in self.metadata.get('chapters', []))
         if markdown_set != metadata_set:
-            print("Mismatch between markdown files and metadata chapters.")
+            print()
+            print("[Processor] Mismatch between markdown files and metadata chapters.")
             return False
         
         return True
@@ -73,7 +74,7 @@ class BaseProcessor:
             'chapters': []
         }
         self.processing_queue = Queue()
-        print(f"Processed directory '{self.processed_dir}' has been wiped.")
+        print(f"[Processor] Processed directory '{self.processed_dir}' has been wiped.")
 
     def fetch_all(self) -> None:
         """
@@ -82,9 +83,9 @@ class BaseProcessor:
         for chapter in self.raw_metadata.get('chapters', []):
             chapter_path = os.path.join(self.raw_dir, chapter['filename'])
             self.processing_queue.put(chapter_path)
-            print(f"Enqueued chapter for processing: {chapter['filename']}")
+            print(f"[Processor] Enqueued chapter for processing: {chapter['filename']}")
         
-        print(f"Processing queue initialized with {self.processing_queue.qsize()} chapters.")
+        print(f"[Processor] Processing queue initialized with {self.processing_queue.qsize()} chapters.")
 
     def fetch_update(self) -> None:
         """
@@ -101,26 +102,26 @@ class BaseProcessor:
         for _, row in merged_df.iterrows():
             if pd.isna(row['revision_date_processed']):
                 self.processing_queue.put(os.path.join(self.raw_dir, row['filename_raw']))
-                print(f"Enqueued new chapter for processing: {row['filename_raw']}")
+                print(f"[Processor] Enqueued new chapter for processing: {row['filename_raw']}")
             elif row['revision_date_raw'] > row['revision_date_processed']:
                 self.processing_queue.put(os.path.join(self.raw_dir, row['filename_raw']))
-                print(f"Enqueued updated chapter for processing: {row['filename_raw']}")
+                print(f"[Processor] Enqueued updated chapter for processing: {row['filename_raw']}")
                 
                 # Delete outdated chapter from processed directory and metadata
                 outdated_file = os.path.join(self.processed_dir, row['filename_processed'])
                 os.remove(outdated_file)
-                print(f"Deleted outdated chapter: {outdated_file}")
+                print(f"[Processor] Deleted outdated chapter: {outdated_file}")
                 chapters_df = chapters_df[chapters_df['filename'] != row['filename_processed']]
         
         self.metadata['chapters'] = chapters_df.to_dict(orient='records')
 
         if self.processing_queue.empty():
-            print("No new or updated chapters found to process.")
+            print("[Processor] No new or updated chapters found to process.")
         else:
-            print(f"Processing queue updated with {self.processing_queue.qsize()} chapters.")
+            print(f"[Processor] Processing queue updated with {self.processing_queue.qsize()} chapters.")
             with open(os.path.join(self.processed_dir, 'metadata.yaml'), 'w', encoding='utf-8') as file:
                 yaml.safe_dump(self.metadata, file, allow_unicode=True)
-            print("Metadata removed outdated chapters.")
+            print("[Processor] Metadata removed outdated chapters.")
 
     def process_chapter(self, chapter_path: str) -> None:
         """
@@ -136,7 +137,7 @@ class BaseProcessor:
         if self.validate_metadata():
             self.fetch_update()
         else:
-            print("Metadata validation failed. Wiping processed directory.")
+            print("[Processor] Metadata validation failed. Wiping processed directory.")
             self.wipe()
             self.fetch_all()
 
@@ -144,7 +145,7 @@ class BaseProcessor:
 
         while not self.processing_queue.empty():
             chapter_path = self.processing_queue.get()
-            print(f"Processing chapter: {chapter_path}")
+            print(f"[Processor] Processing chapter: {chapter_path}")
             self.process_chapter(chapter_path)
             self.processing_queue.task_done()
 
@@ -154,9 +155,9 @@ class BaseProcessor:
                 'revision_date': int(raw_meta_df[raw_meta_df['filename'] == os.path.basename(chapter_path)]['revision_date'].values[0])
             })
         
-        print("All chapters processed.")
+        print("[Processor] All chapters processed.")
 
         with open(os.path.join(self.processed_dir, 'metadata.yaml'), 'w', encoding='utf-8') as file:
             yaml.safe_dump(self.metadata, file, allow_unicode=True)
-            print("Metadata updated after processing chapters.")
+            print("[Processor] Metadata updated after processing chapters.")
 

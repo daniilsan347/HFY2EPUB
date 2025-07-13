@@ -24,7 +24,7 @@ class AJ4ADProcessor(BaseProcessor):
         else:
             title_pos = self.find_chapter_title(chapter_text, chapter_path)
         if title_pos is None:
-            print(f"Warning: No title found in chapter {chapter_path}. Skipping processing.")
+            print(f"[Processor] Warning: No title found in chapter {chapter_path}. Skipping processing.")
             return
 
         self.format_author_notes(chapter_text, title_pos)
@@ -42,7 +42,7 @@ class AJ4ADProcessor(BaseProcessor):
         Remove redundant links from the chapter text.
         """
         previous_chapter_pattern = re.compile(r'\[\\\[Chapter 1\\\]\].+')
-        next_chapter_pattern = re.compile(r'\[[\\\[]+Next Chapter[\\\]+]+\].*')
+        next_chapter_pattern = re.compile(r'\[[\\\[]?Next Cha[op]ter[\\\]+]?\].*')
 
         # Remove the previous chapter link
         del chapter_text[0] # For most cases
@@ -82,27 +82,32 @@ class AJ4ADProcessor(BaseProcessor):
         """
         pattern_w_title = re.compile(r'(?:# |\**)?Chapter ([\d/ AB]+) +– +(.+)')
         pattern_wo_title = re.compile(r'(?:# )?Chapter ([\d/]+)')
-        fallback_pattern = re.compile(r'\[.+\[(.+)\]\]')
+        fallback_pattern = re.compile(r'\[.+\[(.+)\].?\]')
+        fallback_part_pattern = re.compile(r'#* *\**Part [AB]\**')
         fallback_pos = 0
         for i, line in enumerate(chapter_text):
             if match := pattern_w_title.match(line.strip().replace('-', '–')):
                 chapter_text[i] = f"# Chapter {match.group(1)} – {match.group(2)}"
                 chapter_text[i] = chapter_text[i].replace('*', '').replace('**', '')
-                print(f'Found title "{chapter_text[i]}" at line {i} in {chapter_path}')
                 return i
             elif match := pattern_wo_title.match(line):
                 chapter_text[i] = f"# Chapter {match.group(1)}"
-                print(f'Found title "{chapter_text[i]}" at line {i} in {chapter_path}')
                 return i
         
         for i, line in enumerate(chapter_text):
             if line.strip().startswith('-----'):
                 fallback_pos = i
                 break
+        
+        # Check if there is a part title and overwrite the fallback position
+        for i, line in enumerate(chapter_text):
+            if fallback_part_pattern.match(line):
+                fallback_pos = i
+                break
 
         if match := fallback_pattern.search(chapter_path):
-            chapter_text.insert(fallback_pos, f"# {match.group(1)}")
-            print(f'Found fallback title "{chapter_text[fallback_pos]}" at line {fallback_pos} in {chapter_path}')
+            chapter_text[fallback_pos] = f"# {match.group(1)}"
+            print(f'[Processor] Found fallback title "{chapter_text[fallback_pos]}" at line {fallback_pos} in {chapter_path}')
             return fallback_pos
     
     def format_author_notes(self, chapter_text: list[str], title_pos: int) -> None:

@@ -24,7 +24,7 @@ class Downloader:
         
         # If the raw directory is invalid, clear it and fetch all chapters again
         if not validate_metadata(self.raw_dir):
-            print("Invalid metadata, clearing raw directory and fetching chapters again.")
+            print("[Downloader] Invalid metadata, clearing raw directory and fetching chapters again.")
             metadata = self.fetch_all_chapters()
         else: 
             metadata = self.fetch_update()
@@ -32,7 +32,7 @@ class Downloader:
         if metadata:
             with open(os.path.join(self.raw_dir, 'metadata.yaml'), 'w', encoding='utf-8') as file:
                 yaml.safe_dump(metadata, file, allow_unicode=True)
-            print(f"Metadata saved to {os.path.join(self.raw_dir, 'metadata.yaml')}")
+            print(f"[Downloader] Metadata saved to {os.path.join(self.raw_dir, 'metadata.yaml')}")
 
     def fetch_update(self) -> dict | None:
         """
@@ -50,14 +50,14 @@ class Downloader:
         
         is_valid, missing_chapters = compare_meta_and_wiki(metadata_file, wiki_file)
         if not is_valid:
-            print("Metadata does not match the wiki data. Fetching all chapters again.")
+            print("[Downloader] Metadata does not match the wiki data. Fetching all chapters again.")
             return self.fetch_all_chapters()
         
         if missing_chapters.empty():
-            print("No missing chapters found. Metadata is up to date.")
+            print("[Downloader] No missing chapters found. Metadata is up to date.")
             return None
         
-        print(f"Missing chapters found: {missing_chapters.qsize()}. Fetching missing chapters.")
+        print(f"[Downloader] Missing chapters found: {missing_chapters.qsize()}. Fetching missing chapters.")
         
         with open(metadata_file, 'r', encoding='utf-8') as file:
             metadata = yaml.safe_load(file)
@@ -69,7 +69,7 @@ class Downloader:
         for chapter in df_chapters['url'][:2]:
             missing_chapters.put(chapter)
 
-        print(f'Starting download of {missing_chapters.qsize()} missing chapters from subreddit "{wiki_data["subreddit"]}".')
+        print(f'[Downloader] Starting download of {missing_chapters.qsize()} missing chapters from subreddit "{wiki_data["subreddit"]}".')
 
         while not missing_chapters.empty():
             chapter_url = missing_chapters.get()
@@ -117,7 +117,7 @@ class Downloader:
             'chapters': []
         }
 
-        print(f"Starting download of {download_queue.qsize()} chapters from subreddit '{wiki_data['subreddit']}'.")
+        print(f"[Downloader] Starting download of {download_queue.qsize()} chapters from subreddit '{wiki_data['subreddit']}'.")
         while not download_queue.empty():
             chapter_url = download_queue.get()
             chapter_metadata = self.fetch_chapter(chapter_url)
@@ -166,7 +166,7 @@ class Downloader:
             return metadata
 
         except Exception as e:
-            print(f"Error downloading chapter {chapter_url}: {e}")
+            print(f"[Downloader] Error downloading chapter {chapter_url}: {e}")
             return
     
     def fetch_op_chain(self, root: CommentForest, op_username: str) -> list[Comment] | None:
@@ -206,6 +206,6 @@ class Downloader:
             file_path = os.path.join(self.raw_dir, row['filename'])
             if os.path.exists(file_path):
                 os.remove(file_path)
-                print(f"Deleted old version of a chapter: {row['title']} ({row['url']})")
+                print(f"[Downloader] Deleted old version of a chapter: {row['title']} ({row['url']})")
         
         return df_filtered
