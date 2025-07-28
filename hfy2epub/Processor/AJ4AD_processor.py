@@ -45,15 +45,15 @@ class AJ4ADProcessor(BaseProcessor):
         next_chapter_pattern = re.compile(r'\[[\\\[]?Next Cha[op]ter[\\\]+]?\].*')
 
         # Remove the previous chapter link
-        del chapter_text[0] # For most cases
+        chapter_text[0] = '\n' # For most cases
         for i, line in enumerate(chapter_text): # For oddball cases
             if previous_chapter_pattern.match(line):
-                del chapter_text[:i+1]
+                chapter_text[i] = '\n'
+                del chapter_text[:i]
 
         for i, line in enumerate(chapter_text):
             if next_chapter_pattern.search(line):
-                del chapter_text[i-1:i+1]  # Remove the line before the next chapter link
-                break
+                chapter_text[i] = '\n'
     
     def replace_delimiter(self, chapter_text: list[str]) -> None:
         """
